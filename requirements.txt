@@ -9,3 +9,4 @@ notebook
 ipykernel
 tqdm
 joblib
+tensorflow-cpu==2.15.0
