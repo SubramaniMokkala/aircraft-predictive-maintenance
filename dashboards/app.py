@@ -5,6 +5,7 @@ import joblib
 import plotly.graph_objects as go
 import plotly.express as px
 from sklearn.preprocessing import MinMaxScaler
+import onnxruntime as ort
 import os
 
 # Get base path for file loading
@@ -47,19 +48,17 @@ model_choice = st.sidebar.radio(
 # Load models
 @st.cache_resource
 def load_models():
-    import tensorflow as tf          # ← moved here
-    from tensorflow import keras
     try:
         rf_model = joblib.load(os.path.join(BASE_PATH, 'models', 'random_forest_model.pkl'))
-        lstm_model = keras.models.load_model(os.path.join(BASE_PATH, 'models', 'lstm_model.keras'))
+        lstm_session = ort.InferenceSession(os.path.join(BASE_PATH, 'models', 'lstm_model.onnx'))
         scaler = joblib.load(os.path.join(BASE_PATH, 'models', 'scaler.pkl'))
         lstm_config = joblib.load(os.path.join(BASE_PATH, 'models', 'lstm_config.pkl'))
-        return rf_model, lstm_model, scaler, lstm_config
+        return rf_model, lstm_session, scaler, lstm_config
     except Exception as e:
         st.error(f"Error loading models: {e}")
         return None, None, None, None
 
-rf_model, lstm_model, scaler, lstm_config = load_models()
+rf_model, lstm_session, scaler, lstm_config = load_models()
 
 # Load demo data
 @st.cache_data
@@ -159,8 +158,8 @@ with tab1:
                             
                             if len(engine_data) >= seq_length:
                                 sequence = engine_data[features].iloc[-seq_length:].values
-                                sequence = sequence.reshape(1, seq_length, len(features))
-                                prediction = lstm_model.predict(sequence, verbose=0)[0][0]
+                                sequence = sequence.reshape(1, seq_length, len(features)).astype(np.float32)
+                                prediction = lstm_session.run(None, {"input_layer": sequence})[0][0][0]
                             else:
                                 st.warning(f"Need at least {seq_length} cycles for LSTM prediction")
                                 prediction = None
@@ -246,6 +245,7 @@ with tab3:
     - Recurrent neural network with memory
     - Learns temporal patterns automatically
     - RMSE: 25.00 cycles (31% better)
+    - Exported to ONNX format for lightweight cloud deployment
     
     ### Business Impact
     - Average prediction error: ~25 cycles (2-3 weeks)
@@ -254,7 +254,8 @@ with tab3:
     - Improves flight safety and operational efficiency
     
     ### Technical Stack
-    - Python, TensorFlow/Keras, Scikit-learn
+    - Python, TensorFlow/Keras (training), ONNX Runtime (inference)
+    - Scikit-learn for Random Forest
     - Streamlit for dashboard
     - Plotly for visualizations
     
