@@ -5,8 +5,6 @@ import joblib
 import plotly.graph_objects as go
 import plotly.express as px
 from sklearn.preprocessing import MinMaxScaler
-import tensorflow as tf
-from tensorflow import keras
 import os
 
 # Get base path for file loading
@@ -49,6 +47,8 @@ model_choice = st.sidebar.radio(
 # Load models
 @st.cache_resource
 def load_models():
+    import tensorflow as tf          # ← moved here
+    from tensorflow import keras
     try:
         rf_model = joblib.load(os.path.join(BASE_PATH, 'models', 'random_forest_model.pkl'))
         lstm_model = keras.models.load_model(os.path.join(BASE_PATH, 'models', 'lstm_model.keras'))
