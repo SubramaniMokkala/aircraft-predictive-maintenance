@@ -208,3 +208,4 @@ __marimo__/
 data/*.txt
 data/*.txt
 data/*.parquet
+models/lstm_saved_model/
